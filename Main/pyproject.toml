@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "AiNewsReader"
+version = "0.1.0"
+description = "Scraping news articles and summarizing them using AI"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+Scrapy = "^2.11.2"
+openai = "^1.50.2"
+langchain = "^0.3.1"
+langchain-community = "^0.3.1"
+pinecone-client = "^5.0.1"
+python-dotenv = "^1.0.1"
+langchain-pinecone = "^0.2.0"
+tiktoken = "^0.7.0"
+protoc-gen-openapiv2 = "^0.0.1"
+sentence-transformers = "^3.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
