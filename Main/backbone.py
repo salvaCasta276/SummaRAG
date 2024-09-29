@@ -42,29 +42,24 @@ class TextSplitter:
         return self.text_splitter.split_documents(docs)
 
 class EmbeddingType(Enum):
-    HuggingFace = 1,
-    OpenAI = 2
+    HuggingFace = 384,
+    OpenAI = 1536
 
-    @classmethod
-    def get_embedding(cls, embedding_type, model_name, uses_gpu=False):
+    def __init__(self, embedding_size):
+        self.embedding_size = embedding_size
+
+    def get_embedding(self, uses_gpu=False):
         model_kwargs = {}
         if uses_gpu:
             model_kwargs["device"] = "cuda"
 
-        if embedding_type == cls.HuggingFace:
-            return HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
-        elif embedding_type == cls.OpenAI:
-            return OpenAIEmbeddings(model_name=model_name, model_kwargs=model_kwargs)
-
-    @classmethod
-    def embedding_size(cls, embedding_type):
-        if embedding_type == cls.HuggingFace:
-            return 384
-        elif embedding_type == cls.OpenAI:
-            return 1536
+        if self == EmbeddingType.HuggingFace:
+            return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs=model_kwargs)
+        elif self == EmbeddingType.OpenAI:
+            return OpenAIEmbeddings(model_name='gpt', model_kwargs=model_kwargs)
 
 class VectorStore:
-    def __init__(self, index_name, embedding):
+    def __init__(self, index_name, embedding_type):
         """ Creates vector store from Pinecone for storing and managing embeddings.
 
         :param str index_name: The name of the index to create or retrieve from Pinecone.
@@ -80,7 +75,7 @@ class VectorStore:
         if index_name not in pc.list_indexes().names():        # Check whether an index with the given index_name already exists
             pc.create_index(
                 name=index_name,          # Name of the index
-                dimension=embedding.embedding_size, # Size of the vectors (embeddings)
+                dimension=embedding_type.embedding_size, # Size of the vectors (embeddings)
                 metric="cosine",          # Distance metric used to compare vectors
                 spec=ServerlessSpec(      # Determines the infrastructure used
                     cloud='aws',          # Specifies that the Pinecone index is hosted on AWS
@@ -88,8 +83,7 @@ class VectorStore:
                 )
             )
 
-        self.vectorstore = PineconeVectorStore(index_name=index_name, embedding=embedding) # initializes a PineconeVectorStore object using the index_name and the provided embeddings model or function
-        return self.vectorstore
+        self.database = PineconeVectorStore(index_name=index_name, embedding=embedding_type.get_embedding()) # initializes a PineconeVectorStore object using the index_name and the provided embeddings model or function
 
 
 if __name__ == "__main__":
@@ -100,8 +94,20 @@ if __name__ == "__main__":
         docs_loader.append(DocumentLoader(path="ainewscraper/output/" + file))
 
     splitter = TextSplitter()
-    chunks = splitter.get_chunks(docs_loader[0].load())
 
-    embedding = EmbeddingType.get_embedding(EmbeddingType.HuggingFace, "sentence-transformers/all-MiniLM-L6-v2")
+    chunks = []
+    for loader in docs_loader:
+        chunks.extend(splitter.get_chunks(loader.load()))
 
-    vectorstore = VectorStore(index_name="ainews", embedding=embedding)
+    embedding_type = EmbeddingType.HuggingFace
+    vectorstore = VectorStore(index_name="ainews", embedding_type=embedding_type)
+
+    # vectorstore.database.add_documents(chunks)  # Adds the chunks to the Pinecone index
+
+    query = "When can a security mecanism work?"
+    search_results = vectorstore.database.search(
+        query=query,              # Return docs most similar to query using specified search type.
+        search_type="similarity_score_threshold", # can be “similarity”, “mmr”, or “similarity_score_threshold”.
+        k=5                       # return top k,
+    )
+    print(search_results[0])
