@@ -1,22 +1,25 @@
-import openai
-import langchain
 import os
-import pinecone
+
 from enum import Enum
-from langchain_community.document_loaders import PyPDFDirectoryLoader, TextLoader, DirectoryLoader, JSONLoader
+from langchain_community.document_loaders import JSONLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
+from langchain.chains.summarize import load_summarize_chain
+from langchain_community.llms import HuggingFaceHub
+import torch
 
 from dotenv import load_dotenv
 
 from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 
+import cleaning
+
+
 class DocumentLoader:
     def __init__(self, path):
-        # Reads custom data from local file
         self.loader = JSONLoader(
             file_path=path,
             jq_schema='{ "page_content": .content, "url": .url, "title": .title, "author": .author, "date": .date }',
@@ -34,8 +37,8 @@ class DocumentLoader:
         }
 
     def load(self):
-        return self.loader.load()  # Load the document from the path
-    
+        return self.loader.load()
+
 class TextSplitter:
     def __init__(self, chunk_size=1000, chunk_overlap=200):
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap, add_start_index=True)
@@ -52,7 +55,7 @@ class EmbeddingType(Enum):
 
     def get_embedding(self, uses_gpu=False):
         model_kwargs = {}
-        if uses_gpu:
+        if uses_gpu and torch.cuda.is_available():
             model_kwargs["device"] = "cuda"
 
         if self == EmbeddingType.HuggingFace:
@@ -62,56 +65,57 @@ class EmbeddingType(Enum):
 
 class VectorStore:
     def __init__(self, index_name, embedding_type):
-        """ Creates vector store from Pinecone for storing and managing embeddings.
+        pc = Pinecone(api_key=os.environ['PINECONE_API_KEY'])
 
-        :param str index_name: The name of the index to create or retrieve from Pinecone.
-        :param str embeddings: The embedding function to be used to generate embeddings
-        :param int embedding_size: The size (dimension) of the embeddings. Defaults to 384 (e.g., for sentence-transformers/all-MiniLM-L6-v2).
-
-        :return: PineconeVectorStore: An object representing the vector store in Pinecone for managing embeddings.
-
-        :raise: ValueError: If the index creation fails due to invalid parameters or connection issues.
-        """
-        pc = Pinecone(api_key=os.environ['PINECONE_API_KEY'])  # Pinecone is initialized using an API key stored in the environment variable
-
-        if index_name not in pc.list_indexes().names():        # Check whether an index with the given index_name already exists
+        if index_name not in pc.list_indexes().names():
             pc.create_index(
-                name=index_name,          # Name of the index
-                dimension=embedding_type.embedding_size, # Size of the vectors (embeddings)
-                metric="cosine",          # Distance metric used to compare vectors
-                spec=ServerlessSpec(      # Determines the infrastructure used
-                    cloud='aws',          # Specifies that the Pinecone index is hosted on AWS
-                    region='us-east-1'    # Specifies the region of the cloud provider
+                name=index_name,
+                dimension=embedding_type.embedding_size,
+                metric="cosine",
+                spec=ServerlessSpec(
+                    cloud='aws',
+                    region='us-east-1'
                 )
             )
 
-        self.database = PineconeVectorStore(index_name=index_name, embedding=embedding_type.get_embedding()) # initializes a PineconeVectorStore object using the index_name and the provided embeddings model or function
+        self.database = PineconeVectorStore(index_name=index_name, embedding=embedding_type.get_embedding())
 
+def clean_text(text):
+    return cleaning.clean_content(text)
 
 if __name__ == "__main__":
+    load_dotenv()
+
+    # Check for GPU availability
+    use_gpu = torch.cuda.is_available()
+    if use_gpu:
+        print("GPU is available and will be used.")
+    else:
+        print("GPU is not available. Using CPU.")
+
     files = os.listdir("ainewscraper/output/")
     docs_loader = []
 
-    load_dotenv()
 
     for file in files:
         docs_loader.append(DocumentLoader(path="ainewscraper/output/" + file))
 
     splitter = TextSplitter()
 
-    chunks = []
-    for loader in docs_loader:
-        chunks.extend(splitter.get_chunks(loader.load()))
-
     embedding_type = EmbeddingType.HuggingFace
     vectorstore = VectorStore(index_name="ainews", embedding_type=embedding_type)
 
-    # vectorstore.database.add_documents(chunks)  # Adds the chunks to the Pinecone index
+    all_chunks = []
+    for loader in docs_loader:
+        docs = loader.load()
+        
+        # Clean the text
+        for doc in docs:
+            doc.page_content = clean_text(doc.page_content)
+        
+        chunks = splitter.get_chunks(docs)
+        all_chunks.extend(chunks)
 
-    query = "When can a security mecanism work?"
-    search_results = vectorstore.database.search(
-        query=query,              # Return docs most similar to query using specified search type.
-        search_type="similarity_score_threshold", # can be “similarity”, “mmr”, or “similarity_score_threshold”.
-        k=5                       # return top k,
-    )
-    print(search_results[0])
+    # Save all chunks to Pinecone
+    vectorstore.database.add_documents(all_chunks)
+    print("All documents have been saved to Pinecone.")

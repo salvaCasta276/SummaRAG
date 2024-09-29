@@ -22,11 +22,11 @@ jq = "^1.8.0"
 langchain-huggingface = "^0.1.0"
 langchain-openai = "^0.2.1"
 pinecone = {extras = ["grpc"], version = "^5.3.1"}
-torch = {version = "^2.2.1", source="torch_cuda121"}
+torch = {version = "^2.2.1", source="torchcpu"}
 
 [[tool.poetry.source]]
-name = "torch_cuda121"
-url = "https://download.pytorch.org/whl/cu121"
+name = "torchcpu"
+url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
 

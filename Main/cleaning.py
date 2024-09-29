@@ -2,19 +2,14 @@ import re
 import json
 
 def clean_content(text):
-    # Remove CSS selectors and their declarations
-    cleaned = re.sub(r'\.[\w-]+(?:\s*>\s*\*|\s*\+\s*\.[\w-]+|\[[\w\[\]:^$*]+\])?(?:\s*,\s*\.[\w-]+(?:\s*>\s*\*|\s*\+\s*\.[\w-]+|\[[\w\[\]:^$*]+\])?)*\s*(\{[^}]*\})?', '', text)
-    
-    # Remove @font-face declarations
+    # Remove CSS-like selectors and their declarations
+    cleaned = re.sub(r'(\s*:\s*focus\s*,?\s*body\s*:\s*focus\s*\*\s*\{[^}]*\})', '', text)
+    cleaned = re.sub(r'(\s*>\s*>\s*>\s*>\s*>\s*\*\s*\{[^}]*\})', '', cleaned)
+    cleaned = re.sub(r'(\s*>\s*svg\s*\{[^}]*\})', '', cleaned)
+    cleaned = re.sub(r'\.[\w-]+(?:\s*>\s*\*|\s*\+\s*\.[\w-]+|\[[\w\[\]:^$*]+\])?(?:\s*,\s*\.[\w-]+(?:\s*>\s*\*|\s*\+\s*\.[\w-]+|\[[\w\[\]:^$*]+\])?)*\s*(\{[^}]*\})?', '', cleaned)
     cleaned = re.sub(r'@font-face\s*\{[^}]*\}', '', cleaned)
-    
-    # Remove any remaining @font-face references
     cleaned = re.sub(r'@font-face', '', cleaned)
-    
-    # Remove <script> and <style> tags and their content
     cleaned = re.sub(r'<(script|style)[^>]*>.*?</\1>', '', cleaned, flags=re.DOTALL)
-    
-    # Remove HTML tags and extra spaces
     cleaned = re.sub(r'<[^>]+>', '', cleaned)
     cleaned = re.sub(r'\s+', ' ', cleaned)
     
