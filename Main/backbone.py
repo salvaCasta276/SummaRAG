@@ -9,6 +9,8 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
+from dotenv import load_dotenv
+
 from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 
@@ -89,6 +91,8 @@ class VectorStore:
 if __name__ == "__main__":
     files = os.listdir("ainewscraper/output/")
     docs_loader = []
+
+    load_dotenv()
 
     for file in files:
         docs_loader.append(DocumentLoader(path="ainewscraper/output/" + file))
