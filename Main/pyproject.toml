@@ -18,6 +18,7 @@ langchain-pinecone = "^0.2.0"
 tiktoken = "^0.7.0"
 protoc-gen-openapiv2 = "^0.0.1"
 sentence-transformers = "^3.1.1"
+jq = "^1.8.0"
 
 
 [build-system]

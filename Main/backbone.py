@@ -2,22 +2,34 @@ import openai
 import langchain
 import os
 from enum import Enum
-from langchain.document_loaders import PyPDFDirectoryLoader, DirectoryLoader, TextLoader
+from langchain_community.document_loaders import PyPDFDirectoryLoader, TextLoader, DirectoryLoader, JSONLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
-from langchain.vectorstores import Pinecone
-from langchain.llms import OpenAI
+from langchain_community.vectorstores import Pinecone
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
 
 class DocumentLoader:
     def __init__(self, path):
         # Reads custom data from local file
-        self.loader = DirectoryLoader(path="docs", glob="*.txt", loader_cls=TextLoader)  # Loader class to use for loading files
-        self.path = path
+        self.loader = JSONLoader(
+            file_path=path,
+            jq_schema='{ "page_content": .content, "url": .url, "title": .title, "author": .author, "date": .date }',
+            content_key='.page_content',
+            is_content_key_jq_parsable=True,
+            metadata_func=self.extract_metadata,
+            text_content=False)
+        
+    def extract_metadata(self, json_dict, metadata):
+        return {
+            "url": json_dict.get("url"),
+            "title": json_dict.get("title"),
+            "author": json_dict.get("author"),
+            "date": json_dict.get("date")
+        }
 
     def load(self):
-        return self.loader.load(self.path)  # Load the document from the path
+        return self.loader.load()  # Load the document from the path
     
 class TextSplitter:
     def __init__(self, chunk_size=1000, chunk_overlap=200):
@@ -73,4 +85,8 @@ class VectorStore:
                 )
             )
 
-        self.vectorstore = PineconeVectorStore(index_name=INDEX_NAME, embedding=embedding) # initializes a PineconeVectorStore object using the index_name and the provided embeddings model or function
+        self.vectorstore = PineconeVectorStore(index_name=index_name, embedding=embedding) # initializes a PineconeVectorStore object using the index_name and the provided embeddings model or function
+
+if __name__ == "__main__":
+    doc_loader = DocumentLoader(path="post.json")
+    print(doc_loader.load())
