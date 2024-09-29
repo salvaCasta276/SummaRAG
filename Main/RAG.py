@@ -5,20 +5,19 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Pinecone
 from langchain.llms import HuggingFaceHub
 from langchain.chains import RetrievalQA
+from dotenv import load_dotenv
+
+import cleaning
+
+load_dotenv()
 
 # Initialize Pinecone
 rag.init(api_key=os.getenv("PINECONE_API_KEY"), environment=os.getenv("PINECONE_ENV"))
 
-def clean_and_split_data(posts):
-    cleaned_texts = []
-    for post in posts:
-        cleaned_text = post['body'].strip()
-        cleaned_texts.append(cleaned_text)
-    
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    split_texts = text_splitter.create_documents(cleaned_texts)
-    
-    return split_texts
+# Clean the json file containing the posts and save the cleaned posts into a new json file
+def process_posts(file_path):
+    cleaning.process_posts(file_path)
+
 
 def initialize_vectorstore(posts):
     embeddings = HuggingFaceEmbeddings()
