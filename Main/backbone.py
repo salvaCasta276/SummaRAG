@@ -1,13 +1,16 @@
 import openai
 import langchain
 import os
+import pinecone
 from enum import Enum
 from langchain_community.document_loaders import PyPDFDirectoryLoader, TextLoader, DirectoryLoader, JSONLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
-from langchain_community.vectorstores import Pinecone
-from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
+
+from pinecone.grpc import PineconeGRPC as Pinecone
+from pinecone import ServerlessSpec
 
 class DocumentLoader:
     def __init__(self, path):
@@ -86,7 +89,19 @@ class VectorStore:
             )
 
         self.vectorstore = PineconeVectorStore(index_name=index_name, embedding=embedding) # initializes a PineconeVectorStore object using the index_name and the provided embeddings model or function
+        return self.vectorstore
+
 
 if __name__ == "__main__":
-    doc_loader = DocumentLoader(path="post.json")
-    print(doc_loader.load())
+    files = os.listdir("ainewscraper/output/")
+    docs_loader = []
+
+    for file in files:
+        docs_loader.append(DocumentLoader(path="ainewscraper/output/" + file))
+
+    splitter = TextSplitter()
+    chunks = splitter.get_chunks(docs_loader[0].load())
+
+    embedding = EmbeddingType.get_embedding(EmbeddingType.HuggingFace, "sentence-transformers/all-MiniLM-L6-v2")
+
+    vectorstore = VectorStore(index_name="ainews", embedding=embedding)

@@ -19,6 +19,9 @@ tiktoken = "^0.7.0"
 protoc-gen-openapiv2 = "^0.0.1"
 sentence-transformers = "^3.1.1"
 jq = "^1.8.0"
+langchain-huggingface = "^0.1.0"
+langchain-openai = "^0.2.1"
+pinecone = {extras = ["grpc"], version = "^5.3.1"}
 
 
 [build-system]
