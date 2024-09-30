@@ -1,0 +1,6 @@
+out_max_length: 128
+temperature: 0.5
+num_retrievals: 10
+metric: 'cosine'
+chunk_size: 1000
+chunk_overlap: 200

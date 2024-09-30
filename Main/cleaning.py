@@ -31,10 +31,3 @@ def process_posts(file_path):
         cleaned_posts.append(cleaned_post)
     
     return cleaned_posts
-
-# Usage
-cleaned_posts = process_posts('posts.json')
-
-# Save cleaned posts
-with open('cleaned_posts.json', 'w', encoding='utf-8') as f:
-    json.dump(cleaned_posts, f, ensure_ascii=False, indent=4)

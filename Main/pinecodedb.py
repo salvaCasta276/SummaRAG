@@ -1,4 +1,5 @@
 import os
+import yaml
 
 from enum import Enum
 from langchain_community.document_loaders import JSONLoader
@@ -15,6 +16,9 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 
 import cleaning
+
+with open('config.yaml') as f:
+    config = yaml.safe_load(f)
 
 
 class DocumentLoader:
@@ -39,7 +43,7 @@ class DocumentLoader:
         return self.loader.load()
 
 class TextSplitter:
-    def __init__(self, chunk_size=1000, chunk_overlap=200):
+    def __init__(self, chunk_size=config['chunk_size'], chunk_overlap=config['chunk_overlap']):
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap, add_start_index=True)
 
     def get_chunks(self, docs):
@@ -70,7 +74,7 @@ class VectorStore:
             pc.create_index(
                 name=index_name,
                 dimension=embedding_type.embedding_size,
-                metric="cosine",
+                metric=config['metric'],
                 spec=ServerlessSpec(
                     cloud='aws',
                     region='us-east-1'
@@ -85,12 +89,12 @@ def clean_text(text):
 if __name__ == "__main__":
     load_dotenv()
 
-    files = os.listdir("ainewscraper/output/")
+    files = os.listdir("ainewscraper/output")
     docs_loader = []
 
 
     for file in files:
-        docs_loader.append(DocumentLoader(path="ainewscraper/output/" + file))
+        docs_loader.append(DocumentLoader(path="ainewscraper/output" + file))
 
     splitter = TextSplitter()
 
@@ -108,6 +112,8 @@ if __name__ == "__main__":
         chunks = splitter.get_chunks(docs)
         all_chunks.extend(chunks)
 
+    #print('First chunk', all_chunks[0])
+    #vectorstore.database.similarity_search()
     # Save all chunks to Pinecone
     vectorstore.database.add_documents(all_chunks)
     print("All documents have been saved to Pinecone.")

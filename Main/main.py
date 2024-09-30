@@ -6,8 +6,30 @@ from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpoint
 from langchain.chains.summarize import load_summarize_chain
 from langchain.docstore.document import Document
 from pinecone import Pinecone
+from pinecone import Index
 import json
+import yaml
 from datetime import datetime
+
+
+with open('config.yaml') as f:
+    config = yaml.safe_load(f)
+
+
+class AgregationDict(dict):
+    def agregate(self, name, value):
+        if self.get(name) is None:
+            self[name] = value
+        else:
+            self[name] = value + self.get(name)
+    def over_boundry(self, boundry):
+        titles = []
+        for title in self:
+            if self.get(title) >= boundry:
+                titles.append(title)
+        return titles
+
+
 
 def get_search_query(doc, search_method='title'):
     if search_method == 'title':
@@ -47,14 +69,17 @@ def save_summaries_to_json(file_summaries, overall_summary):
     
     print(f"Summaries have been saved to {index_filename}")
 
+
 if __name__ == "__main__":
     load_dotenv()
 
     # Initialize Pinecone and vector store
+    #TODO esto se usa para algo?
     pc = Pinecone(api_key=os.environ['PINECONE_API_KEY'])
     index_name = "ainews" # Should be the same as the index name used in the Pinecone console
     embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     vectorstore = PineconeVectorStore(index_name=index_name, embedding=embedding)
+    index = pc.Index(index_name)
 
     # Initialize LLM
     
@@ -63,8 +88,8 @@ if __name__ == "__main__":
     repo_id = "mistralai/Mistral-7B-Instruct-v0.3"
     llm = HuggingFaceEndpoint(
         repo_id=repo_id,
-        max_length=128,
-        temperature=0.5,
+        max_length=config['out_max_length'], 
+        temperature=config['temperature'], #+ temp + aleatorio, entre 0 y 1
         token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
     )
 
@@ -100,8 +125,27 @@ if __name__ == "__main__":
     print(type(doc))
     
     query = get_search_query(doc, search_method)
-    retrieved_docs = vectorstore.similarity_search(query, k=10)
-    print(retrieved_docs)
+
+    #Se definene los autores de los que quiero recibir resumenes
+    #Te sigue tranyendo la cantidad original pero solo de los autores seleccionados
+    retrieved_docs = vectorstore.similarity_search(query, k=config['num_retrievals'])
+
+    #query = 'preventing models from doing unwanted things'
+    #filter_condition = {'author': {'$in': ['Connor Kissane', 'Buck Shlegeris']}}
+    #results = index.query(vector=embedding.embed_query(query), top_k=config['num_retrievals'], include_metadata=True, filter=filter_condition)
+    #print(results['matches'][0]['metadata']['title'])
+
+    #score_counter = AgregationDict()
+    #for match in results['matches']:
+    #    score_counter.agregate(match['metadata']['title'], match['score'])
+
+    #for title in score_counter:
+    #    print('Title:', title)
+    #    print('Score:', score_counter.get(title))
+    #    print('\n')
+
+    #print(score_counter.over_boundry(0.3))
+
     print("\n" + "="*50 + "\n")
     # Extract the content of the retrieved documents
     input_text = " ".join(rd.page_content for rd in retrieved_docs)
@@ -124,9 +168,9 @@ if __name__ == "__main__":
     
     
     
-    # combined_summaries = "".join(file_summaries)
-    # overall_summary = summarize_text(combined_summaries, llm)
-    # print("Overall summary of all posts:")
-    # print(overall_summary)
+    #combined_summaries = "".join(file_summaries)
+    #overall_summary = summarize_text(combined_summaries, llm)
+    #print("Overall summary of all posts:")
+    #print(overall_summary)
 
-    # save_summaries_to_json(file_summaries, overall_summary)
+    #save_summaries_to_json(file_summaries, overall_summary)
