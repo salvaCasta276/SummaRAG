@@ -4,6 +4,7 @@ from langchain_community.document_loaders import JSONLoader
 from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpoint
 from langchain.chains.summarize import load_summarize_chain
+from langchain.docstore.document import Document
 from pinecone import Pinecone
 import json
 from datetime import datetime
@@ -23,8 +24,9 @@ def get_search_query(doc, search_method='title'):
 def summarize_text(text, llm):
     try:
         chain = load_summarize_chain(llm, chain_type="stuff")
-        summary = chain.invoke(text)
-        return summary
+        doc = Document(page_content=text)
+        summary = chain.invoke([doc])
+        return summary['output_text']
     except Exception as e:
         print(f"Error in summarization: {e}")
         return "Error in summarization"
@@ -93,16 +95,32 @@ if __name__ == "__main__":
     
     ### TESTING WITH ONE DOCUMENT
     doc = docs[0]
+    
+    # check doc type
+    print(type(doc))
+    
     query = get_search_query(doc, search_method)
     retrieved_docs = vectorstore.similarity_search(query, k=10)
     print(retrieved_docs)
     print("\n" + "="*50 + "\n")
-    file_summary = summarize_text(retrieved_docs, llm)
+    # Extract the content of the retrieved documents
+    input_text = " ".join(rd.page_content for rd in retrieved_docs)
+    
+    print("Input text for summarization:")
+    print(input_text)
+    print("\n" + "="*50 + "\n")
+    
+    file_summary = summarize_text(input_text, llm)
     print(f"Summary for {doc['title']}:")
     print(file_summary)
     print("\n" + "="*50 + "\n")
-    with open(f"ainewscraper/output/{doc['title']}-Summary.json", 'w') as f:
-        json.dump(file_summary, f, indent=2)
+    
+    # check if summaries folder exists
+    if not os.path.exists('summaries'):
+        os.makedirs('summaries')
+    
+    with open(f"summaries/{doc['title']}-Summary.json", 'w', encoding='utf-8') as f:
+        json.dump(file_summary, f, ensure_ascii=False, indent=2)
     
     
     
