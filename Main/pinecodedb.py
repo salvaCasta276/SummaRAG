@@ -8,7 +8,6 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains.summarize import load_summarize_chain
 from langchain_community.llms import HuggingFaceHub
-import torch
 
 from dotenv import load_dotenv
 
@@ -55,7 +54,7 @@ class EmbeddingType(Enum):
 
     def get_embedding(self, uses_gpu=False):
         model_kwargs = {}
-        if uses_gpu and torch.cuda.is_available():
+        if uses_gpu:
             model_kwargs["device"] = "cuda"
 
         if self == EmbeddingType.HuggingFace:
@@ -85,13 +84,6 @@ def clean_text(text):
 
 if __name__ == "__main__":
     load_dotenv()
-
-    # Check for GPU availability
-    use_gpu = torch.cuda.is_available()
-    if use_gpu:
-        print("GPU is available and will be used.")
-    else:
-        print("GPU is not available. Using CPU.")
 
     files = os.listdir("ainewscraper/output/")
     docs_loader = []
