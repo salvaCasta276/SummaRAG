@@ -41,7 +41,7 @@ class DBHandler:
     def reset_index(self):
         self.pc.delete_index(self.index_name)
         self.database = None
-        self._create_index(self.index_name)
+        self._create_index()
 
     def insert_data(self, data):
         self.database.add_documents(data)
@@ -61,4 +61,6 @@ if __name__ == "__main__":
 
     all_chunks = preprocessor.process_dir(config['dir_path'])
 
-    #db_handler.insert_data(all_chunks)
+    db_handler.reset_index()
+
+    db_handler.insert_data(all_chunks)
