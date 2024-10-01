@@ -4,6 +4,6 @@ num_retrievals: 10
 metric: 'cosine'
 embed_name: 'sentence-transformers/all-MiniLM-L6-v2'
 index_name: 'ainews'
-match_boundry: 0.3
+match_boundry: 0.6
 chunk_size: 1000
 chunk_overlap: 200

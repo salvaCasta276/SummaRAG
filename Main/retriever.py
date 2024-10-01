@@ -1,7 +1,3 @@
-import os
-from dotenv import load_dotenv
-from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpoint
-from pinecone import Pinecone
 import yaml
 
 
@@ -37,16 +33,3 @@ class Retriever:
             score_counter.agregate(match['metadata']['title'], [match['score'], [match]])
 
         return score_counter.over_boundry(config['match_boundry'])
-
-    
-load_dotenv()
-
-pc = Pinecone(api_key=os.environ['PINECONE_API_KEY'])
-index = pc.Index(config['index_name'])
-embedding = HuggingFaceEmbeddings(model_name=config['embed_name'])
-authors = ['Connor Kissane', 'Buck Shlegeris']
-filter_condition = {'author': {'$in': authors}}
-topic = 'mass extintion'
-
-retriever = Retriever(embedding, index)
-print(retriever.retrieve(topic, filter_condition))
