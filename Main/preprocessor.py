@@ -1,12 +1,7 @@
 import os
 import yaml
-
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import JSONLoader
-
-
-from dotenv import load_dotenv
-
 import cleaning
 
 with open('config.yaml') as f:
