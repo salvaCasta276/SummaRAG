@@ -16,33 +16,6 @@ with open('config.yaml') as f:
     config = yaml.safe_load(f)
 
 
-class AgregationDict(dict):
-    def agregate(self, name, value):
-        if self.get(name) is None:
-            self[name] = value
-        else:
-            self[name] = value + self.get(name)
-    def over_boundry(self, boundry):
-        titles = []
-        for title in self:
-            if self.get(title) >= boundry:
-                titles.append(title)
-        return titles
-
-
-
-def get_search_query(doc, search_method='title'):
-    if search_method == 'title':
-        return doc['title']
-    elif search_method == 'content':
-        return doc['content'][:100] # Just the first 100 characters
-    elif search_method == 'title_and_content':
-        title = doc['title']
-        content = doc['content'][:100]
-        return f"{title} {content}"
-    else:
-        raise ValueError(f"Invalid search method: {search_method}")
-
 def summarize_text(text, llm):
     try:
         chain = load_summarize_chain(llm, chain_type="stuff")
