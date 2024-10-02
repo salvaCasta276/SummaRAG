@@ -19,16 +19,17 @@ Our RAG system focuses on summarizing texts from the AI Alignment Forum, a platf
 
 1. The scraper collects posts from the AI Alignment Forum.
 2. Text is processed and embedded for efficient retrieval.
-3. User queries trigger relevant text retrieval.
+3. User queries with selected authors and interested topic to trigger relevant text retrieval.
 4. The LLM generates summaries based on the retrieved content and user query.
 
 ### Setup and Usage
 
-[Include brief instructions on how to set up and run your project]
-
-### Team Members
-
-[List team members here]
+1. Install poetry:
+2. Run `poetry install` to install dependencies.
+3. Fill the .env file like .env.example.
+4. Run `poetry run py ./ainewscraper/getPosts.py` to scrape last month posts from AI Alignment Forum.
+5. Run `poetry run py WRITEPINECODE.py` to insert the posts into the database.
+6. Run `poetry run py main.py` to start the llm to interact and generate summaries.
 
 ### Acknowledgements
 

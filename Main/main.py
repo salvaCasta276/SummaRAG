@@ -6,57 +6,81 @@ import yaml
 from retriever import Retriever
 from summarizer import Summarizer
 from langchain_huggingface import HuggingFaceEndpoint
-from embedding_type import EmbeddingType
-from db_handler import DBHandler
-from preprocessor import Preprocessor
 
-with open('config.yaml') as f:
-    config = yaml.safe_load(f)
-load_dotenv()
+def load_config():
+    with open('config.yaml') as f:
+        return yaml.safe_load(f)
 
-index_name = config['index_name']
+def initialize_pinecone(config):
+    load_dotenv()
+    pc = Pinecone(api_key=os.environ['PINECONE_API_KEY'])
+    return pc.Index(config['index_name'])
 
-#Se agarra la instancia de pinecone y el indice
-pc = Pinecone(api_key=os.environ['PINECONE_API_KEY'])
-index = pc.Index(index_name)
+def initialize_llm(config):
+    repo_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    return HuggingFaceEndpoint(
+        repo_id=repo_id,
+        max_length=config['out_max_length'],
+        temperature=config['temperature'],
+        token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
+    )
+    
+def save_summary(title, author, summary, folder="summaries"):
+    """
+    Save the summary to a file in the specified folder.
+    """
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    
+    # Create a valid filename from the title
+    filename = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+    filename = filename[:20]  # Limit filename length
+    filepath = os.path.join(folder, f"{filename}.txt")
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(f"Title: {title}\n")
+        f.write(f"Author: {author}\n\n")
+        f.write(f"Summary:\n{summary}\n")
+    
+    print(f"Summary saved to {filepath}")
 
-#Se instancia el dbhandler para crear y cargar el indice y el preprocessor para procesar el directorio con archivos
-embedding_type = EmbeddingType.HuggingFace
-preprocessor = Preprocessor()
-db_handler = DBHandler(pc, embedding_type, index_name=index_name)
+def main():
+    config = load_config()
+    index = initialize_pinecone(config)
+    embedding = HuggingFaceEmbeddings(model_name=config['embed_name'])
+    retriever = Retriever(embedding, index)
+    llm = initialize_llm(config)
+    summarizer = Summarizer(llm)
 
-#Procesamos el dir, reiniciamos el indice y los cargamos con esta data
-all_chunks = preprocessor.process_dir(config['dir_path'])
-db_handler.reset_index()
-db_handler.insert_data(all_chunks)
+    while True:
+        selected_authors = input("Enter the authors you're interested in (comma-separated), or 'all' for all authors: ")
+        selected_authors_list = []
+        if selected_authors.lower() != 'all':
+            selected_authors_list = [author.strip() for author in selected_authors.split(',')]
 
-#Definimos los filtros para hacer la busqueda sobre la db
-embedding = HuggingFaceEmbeddings(model_name=config['embed_name'])
-authors = ['Connor Kissane', 'Buck Shlegeris']
-filter_condition = {'author': {'$in': authors}}
-topic = 'mass extintion'
+        topic = input("Enter the topic you're interested in: ")
 
-#Instanciamos el retriever para buscar en la db
-retriever = Retriever(embedding, index)
-retrieved_titles = retriever.retrieve(topic, filter_condition)
+        filter_condition = {'author': {'$in': selected_authors_list}} if selected_authors else {}
+        retrieved_titles = retriever.retrieve(topic, filter_condition)
 
-#Instanciamos el llm para hacer los resumenes
-HUGGINGFACEHUB_API_TOKEN = os.environ['HUGGINGFACEHUB_API_TOKEN']
-repo_id = "mistralai/Mistral-7B-Instruct-v0.3"
-llm = HuggingFaceEndpoint(
-    repo_id=repo_id,
-    max_length=config['out_max_length'], 
-    temperature=config['temperature'], #+ temp + aleatorio, entre 0 y 1
-    token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
-)
+        if not retrieved_titles:
+            print("No results found for the given authors and topic.")
+        else:
+            for title, (author, content) in retrieved_titles.items():
+                summary = summarizer.summarize_chunks(content)
+                print(f"\nTitle Found: {title}")
+                if selected_authors:
+                    print(f"Author: {selected_authors}")
+                else:
+                    print("Author: All")
+                print(f"Summary about the post: {summary}\n")
+                # todo: author is a float, need to used it to get the most similar author
+                author = selected_authors if selected_authors else "All"
+                save_summary(title, author, summary)
+        
+        continue_search = input("Do you want to perform another search? (yes/no): ")
+        if continue_search.lower() != 'yes':
+            break
 
-#Instanciamos el summarizer y hacemos un resumen por publicacion
-summarizer = Summarizer(llm)
-
-summaries = dict()
-for title in retrieved_titles:
-    summaries[title] = summarizer.summarize_chunks(retrieved_titles[title][1])
-
-for title in retrieved_titles:
-    print(title, 'summ:', summaries[title])
-    print('\n')
+if __name__ == "__main__":
+    main()

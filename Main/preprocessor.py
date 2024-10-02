@@ -4,6 +4,19 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import JSONLoader
 import cleaning
 
+# This class is used to preprocess the json files in a input directory
+# The json files are expected to have the following structure:
+# {
+#     "content": "The content of the page",
+#     "url": "The url of the page",
+#     "title": "The title of the page",
+#     "author": "The author of the page",
+#     "date": "The date of the page"
+# }
+# The JSONLoader is used to load the json files and extract the content, url, title, author and date to be later uploaded to the Pinecone index
+#
+# The content of the page is cleaned and split into chunks of text using the RecursiveCharacterTextSplitter
+
 with open('config.yaml') as f:
     config = yaml.safe_load(f)
 

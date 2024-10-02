@@ -41,20 +41,3 @@ class Summarizer:
         except Exception as e:
             print(f"Error in summarization: {e}")
             return "Error in summarization"
-
-
-# check if summaries folder exists
-#if not os.path.exists('summaries'):
-#    os.makedirs('summaries')
-
-#with open(f"summaries/{doc['title']}-Summary.json", 'w', encoding='utf-8') as f:
-#    json.dump(file_summary, f, ensure_ascii=False, indent=2)
-
-
-
-#combined_summaries = "".join(file_summaries)
-#overall_summary = summarize_text(combined_summaries, llm)
-#print("Overall summary of all posts:")
-#print(overall_summary)
-
-#save_summaries_to_json(file_summaries, overall_summary)
