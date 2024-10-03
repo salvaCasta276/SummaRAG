@@ -95,7 +95,9 @@ def main():
         else:
             # print(retrieved_titles.items())
             for title, (_, content) in retrieved_titles.items():
-                summary = summarizer.summarize_chunks(content)
+                print('Content:', content)
+                summary = summarizer.summarize_chunks(content, topic)
+                print('Summary:', summary)
                 print(f"\nTitle Found: {title}")
                 if selected_authors:
                     print(f"Author: {selected_authors}")
