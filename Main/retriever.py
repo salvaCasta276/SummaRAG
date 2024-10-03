@@ -27,7 +27,6 @@ class Retriever:
     def retrieve(self, query, filter_condition):
 
         results = self.index.query(vector=self.embedding.embed_query(query), top_k=config['num_retrievals'], include_metadata=True, filter=filter_condition)
-
         score_counter = AgregationDict()
         for match in results['matches']:
             score_counter.agregate(match['metadata']['title'], [match['score'], [match]])

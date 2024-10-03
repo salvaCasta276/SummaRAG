@@ -25,7 +25,7 @@ def initialize_llm(config):
         token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
     )
     
-def save_summary(title, author, summary, folder="summaries"):
+def save_summary(title, author, urls, summary, folder="summaries"):
     """
     Save the summary to a file in the specified folder.
     """
@@ -39,8 +39,9 @@ def save_summary(title, author, summary, folder="summaries"):
     
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(f"Title: {title}\n")
-        f.write(f"Author: {author}\n\n")
-        f.write(f"Summary:\n{summary}\n")
+        f.write(f"Author: {author}\n")
+        f.write(f"Urls: {urls}\n\n")
+        f.write(f"Summary:{summary}")
     
     print(f"Summary saved to {filepath}")
 
@@ -53,9 +54,9 @@ def main():
     summarizer = Summarizer(llm)
 
     while True:
-        selected_authors = input("Enter the authors you're interested in (comma-separated), or 'all' for all authors: ")
+        selected_authors = input("Enter the authors you're interested in (comma-separated) [press enter for all authors]: ")
         selected_authors_list = []
-        if selected_authors.lower() != 'all':
+        if selected_authors != '':
             selected_authors_list = [author.strip() for author in selected_authors.split(',')]
 
         topic = input("Enter the topic you're interested in: ")
@@ -66,20 +67,25 @@ def main():
         if not retrieved_titles:
             print("No results found for the given authors and topic.")
         else:
-            for title, (author, content) in retrieved_titles.items():
+            # print(retrieved_titles.items())
+            for title, (_, content) in retrieved_titles.items():
                 summary = summarizer.summarize_chunks(content)
                 print(f"\nTitle Found: {title}")
                 if selected_authors:
                     print(f"Author: {selected_authors}")
                 else:
                     print("Author: All")
-                print(f"Summary about the post: {summary}\n")
+                # print(f"Summary about the post: {summary}\n")
                 # todo: author is a float, need to used it to get the most similar author
                 author = selected_authors if selected_authors else "All"
-                save_summary(title, author, summary)
+                urls = {}
+                for rd in content:
+                    if rd['metadata']['url'] not in urls:
+                        urls[rd['metadata']['url']] = True
+                save_summary(title, author, "\n".join(urls.keys()), summary)
         
-        continue_search = input("Do you want to perform another search? (yes/no): ")
-        if continue_search.lower() != 'yes':
+        continue_search = input("Do you want to perform another search? (y/n): ")
+        if continue_search.lower() != 'y':
             break
 
 if __name__ == "__main__":
