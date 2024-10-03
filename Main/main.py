@@ -6,6 +6,7 @@ import yaml
 from retriever import Retriever
 from summarizer import Summarizer
 from langchain_huggingface import HuggingFaceEndpoint
+from enum import Enum
 
 def load_config():
     with open('config.yaml') as f:
@@ -45,6 +46,17 @@ def save_summary(title, author, urls, summary, folder="summaries"):
     
     print(f"Summary saved to {filepath}")
 
+class Strictness(Enum):
+    none = 0
+    low = 0.5
+    mid = 1
+    high = 3
+
+    def __str__(self):
+        if self == Strictness.mid:
+            return self.name + ' (default)'
+        return self.name
+
 def main():
     config = load_config()
     index = initialize_pinecone(config)
@@ -61,8 +73,22 @@ def main():
 
         topic = input("Enter the topic you're interested in: ")
 
+        print("How strict would you like the matches to be?")
+        for e in Strictness:
+            print(e)
+        threshold = -1
+        while threshold < 0:
+            strict = input("Enter strictness: ")
+            if strict in Strictness.__members__:
+                threshold = Strictness[strict].value
+            if strict == '':
+                threshold = Strictness.mid.value
+            if threshold < 0:
+                print('The specified stricness is invalid, please retry!')
+
+
         filter_condition = {'author': {'$in': selected_authors_list}} if len(selected_authors_list) > 0 else {}
-        retrieved_titles = retriever.retrieve(topic, filter_condition)
+        retrieved_titles = retriever.retrieve(topic, filter_condition, threshold)
 
         if not retrieved_titles:
             print("No results found for the given authors and topic.")

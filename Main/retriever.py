@@ -24,11 +24,11 @@ class Retriever:
         self.index = index
 
 
-    def retrieve(self, query, filter_condition):
+    def retrieve(self, query, filter_condition, threshold):
 
         results = self.index.query(vector=self.embedding.embed_query(query), top_k=config['num_retrievals'], include_metadata=True, filter=filter_condition)
         score_counter = AgregationDict()
         for match in results['matches']:
             score_counter.agregate(match['metadata']['title'], [match['score'], [match]])
 
-        return score_counter.over_boundry(config['match_boundry'])
+        return score_counter.over_boundry(threshold)
