@@ -34,7 +34,7 @@ def save_summary(title, author, summary, folder="summaries"):
     
     # Create a valid filename from the title
     filename = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-    filename = filename[:20]  # Limit filename length
+    filename = filename[:50]  # Limit filename length
     filepath = os.path.join(folder, f"{filename}.txt")
     
     with open(filepath, 'w', encoding='utf-8') as f:
@@ -60,7 +60,7 @@ def main():
 
         topic = input("Enter the topic you're interested in: ")
 
-        filter_condition = {'author': {'$in': selected_authors_list}} if selected_authors else {}
+        filter_condition = {'author': {'$in': selected_authors_list}} if len(selected_authors_list) > 0 else {}
         retrieved_titles = retriever.retrieve(topic, filter_condition)
 
         if not retrieved_titles:
