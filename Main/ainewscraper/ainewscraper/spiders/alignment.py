@@ -450,10 +450,16 @@ class AlignmentSpider(scrapy.Spider):
             item["title"] = post['title']
             item["author"] = post['user']['displayName']
             item["date"] = post['postedAt']
-            item["content"] = post['contents']['plaintextDescription'] if post['contents'] else ''
 
-            self.write_json(item)
-            yield item
+            # Make a new request to fetch the content, passing the item as meta
+            yield scrapy.Request(item["url"], callback=self.parse_content, meta={'item': item})
+
+    def parse_content(self, response):
+        item = response.meta['item']
+        item["content"] = ' '.join(response.css('#postContent .InlineReactSelectionWrapper-root ::text').getall()).strip()
+        
+        self.write_json(item)
+        yield item
 
     def write_json(self, item):
         if not os.path.exists('output'):
