@@ -1,10 +1,9 @@
 out_max_length: 128
 temperature: 0.5
-num_retrievals: 10
+num_retrievals: 100
 metric: 'cosine'
 embed_name: 'sentence-transformers/all-MiniLM-L6-v2'
 index_name: 'ainews'
-dir_path: 'ainewscraper/output/'
-match_boundry: 0.3
+dir_path: './output/'
 chunk_size: 1000
 chunk_overlap: 200
