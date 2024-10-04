@@ -1,6 +1,7 @@
 import os
-from langchain.chains.summarize import load_summarize_chain
+from dotenv import load_dotenv
 from langchain.docstore.document import Document
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.combine_documents import create_stuff_documents_chain
 import json
@@ -34,19 +35,20 @@ class Summarizer:
         self.llm = llm
 
     def summarize_chunks(self, chunks, topic):
+        load_dotenv()
         try:
-            # text = " ".join(rd['metadata']['text'] for rd in chunks)
-            # engineered_prompt = "Make a summary of the following:\n\n"
-            # engineered_prompt = "Write a concise summary in third person of the following content, as if making a new article but shorter:\\n\\n"
-            #engineered_prompt = "Tell me in a summarized way in third person what the author says in the text regarding " + topic + " :\\n\\n"
+            #text = " ".join(rd['metadata']['text'] for rd in chunks)
+            #engineered_prompt = "Make a summary of the following:\n\n"
+            #engineered_prompt = "Write a concise summary in third person of the following content, as if making a new article but shorter:\\n\\n"
+            engineered_prompt = "Write a cohesive short text in third person telling us what the author's thoughts regarding " + topic + " are in the following text:\\n\\n"
             prompt = ChatPromptTemplate.from_messages(
                 [("system", engineered_prompt + "{context}")]
             )
             chain = create_stuff_documents_chain(self.llm, prompt)
+            #chain = create_stuff_documents_chain(ChatOpenAI(model='gpt-3.5-turbo'), prompt)
             # chain = load_summarize_chain(self.llm, chain_type="stuff")
             # doc = Document(page_content=text)
             docs = [Document(page_content=rd['metadata']['text']) for rd in chunks]
-            # print(docs)
             summary = chain.invoke({"context": docs})
             return summary
             # summary = chain.invoke([doc])

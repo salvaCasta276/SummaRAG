@@ -1,5 +1,5 @@
-out_max_length: 128
-temperature: 0.5
+out_max_length: 500
+temperature: 0.1
 num_retrievals: 30
 metric: 'cosine'
 embed_name: 'sentence-transformers/all-MiniLM-L6-v2'

@@ -19,11 +19,10 @@ def initialize_pinecone(config):
     return pc.Index(config['index_name'])
 
 def initialize_llm(config):
-    repo_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    repo_id = "mistralai/Mistral-7B-Instruct-v0.2"
     model_kwargs = {
         'max_length':config['out_max_length'],
-        'token':os.environ["HUGGINGFACEHUB_API_TOKEN"],
-        'clean_up_tokenization_spaces':True}
+        'token':os.environ["HUGGINGFACEHUB_API_TOKEN"]}
     return HuggingFaceEndpoint(
         repo_id=repo_id,
         model_kwargs=model_kwargs,
@@ -109,8 +108,8 @@ def main():
                 summary = summarizer.summarize_chunks(content, topic)
                 print("Article found:")
                 print(f"\n- Title: {title}")
-                print(f"- Author: {content[0]['metadata']['author']}")
-                author = selected_authors if selected_authors else "All"
+                author = content[0]['metadata']['author']
+                print(f"- Author: {author}")
                 urls = {}
                 for rd in content:
                     if rd['metadata']['url'] not in urls:
