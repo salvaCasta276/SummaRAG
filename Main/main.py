@@ -52,7 +52,7 @@ def save_summary(title, author, urls, summary, folder="summaries"):
 class Strictness(Enum):
     none = 0
     low = 0.5
-    mid = 1
+    mid = 1.5
     high = 3
 
     def __str__(self):
