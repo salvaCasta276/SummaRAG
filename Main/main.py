@@ -1,4 +1,5 @@
 import os
+import sys
 from dotenv import load_dotenv
 from langchain_huggingface import HuggingFaceEmbeddings
 from pinecone import Pinecone
@@ -19,11 +20,14 @@ def initialize_pinecone(config):
 
 def initialize_llm(config):
     repo_id = "mistralai/Mistral-7B-Instruct-v0.3"
+    model_kwargs = {
+        'max_length':config['out_max_length'],
+        'token':os.environ["HUGGINGFACEHUB_API_TOKEN"],
+        'clean_up_tokenization_spaces':True}
     return HuggingFaceEndpoint(
         repo_id=repo_id,
-        max_length=config['out_max_length'],
+        model_kwargs=model_kwargs,
         temperature=config['temperature'],
-        token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
     )
     
 def save_summary(title, author, urls, summary, folder="summaries"):
@@ -58,12 +62,20 @@ class Strictness(Enum):
         return self.name
 
 def main():
-    config = load_config()
-    index = initialize_pinecone(config)
-    embedding = HuggingFaceEmbeddings(model_name=config['embed_name'])
-    retriever = Retriever(embedding, index)
-    llm = initialize_llm(config)
-    summarizer = Summarizer(llm)
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    log_file_path = 'out.log'
+    with open(log_file_path, 'w') as log_file:
+        sys.stdout = log_file
+        sys.stderr = log_file
+        config = load_config()
+        index = initialize_pinecone(config)
+        embedding = HuggingFaceEmbeddings(model_name=config['embed_name'])
+        retriever = Retriever(embedding, index)
+        llm = initialize_llm(config)
+        summarizer = Summarizer(llm)
+    sys.stdout = original_stdout
+    sys.stderr = original_stderr
 
     while True:
         selected_authors = input("Enter the authors you're interested in (comma-separated) [press enter for all authors]: ")
@@ -93,19 +105,11 @@ def main():
         if not retrieved_titles:
             print("No results found for the given authors and topic.")
         else:
-            # print(retrieved_titles.items())
             for title, (_, content) in retrieved_titles.items():
-                # print('Content:', content)
                 summary = summarizer.summarize_chunks(content, topic)
-                # print('Summary:', summary)
                 print("Article found:")
                 print(f"\n- Title: {title}")
-                if selected_authors:
-                    print(f"- Author: {selected_authors}")
-                else:
-                    print("- Author: All")
-                # print(f"Summary about the post: {summary}\n")
-                # todo: author is a float, need to used it to get the most similar author
+                print(f"- Author: {content[0]['metadata']['author']}")
                 author = selected_authors if selected_authors else "All"
                 urls = {}
                 for rd in content:
