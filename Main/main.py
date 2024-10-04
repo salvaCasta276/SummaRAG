@@ -95,14 +95,15 @@ def main():
         else:
             # print(retrieved_titles.items())
             for title, (_, content) in retrieved_titles.items():
-                print('Content:', content)
+                # print('Content:', content)
                 summary = summarizer.summarize_chunks(content, topic)
-                print('Summary:', summary)
-                print(f"\nTitle Found: {title}")
+                # print('Summary:', summary)
+                print("Article found:")
+                print(f"\n- Title: {title}")
                 if selected_authors:
-                    print(f"Author: {selected_authors}")
+                    print(f"- Author: {selected_authors}")
                 else:
-                    print("Author: All")
+                    print("- Author: All")
                 # print(f"Summary about the post: {summary}\n")
                 # todo: author is a float, need to used it to get the most similar author
                 author = selected_authors if selected_authors else "All"

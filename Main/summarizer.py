@@ -36,8 +36,9 @@ class Summarizer:
     def summarize_chunks(self, chunks, topic):
         try:
             # text = " ".join(rd['metadata']['text'] for rd in chunks)
-            #engineered_prompt = "Write a concise summary in third person of the following content, as if making a new article but shorter:\\n\\n"
-            engineered_prompt = "Tell me in a summarized way in third person what the author says in the text regarding " + topic + " :\\n\\n"
+            # engineered_prompt = "Write a concise summary in third person of the following content, as if making a new article but shorter:\\n\\n"
+            # engineered_prompt = "Tell me in a summarized way in third person what the author says in the text regarding " + topic + " :\\n\\n"
+            engineered_prompt = "Make a summary of the following:\n\n"
             prompt = ChatPromptTemplate.from_messages(
                 [("system", engineered_prompt + "{context}")]
             )

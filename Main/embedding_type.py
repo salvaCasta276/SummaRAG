@@ -18,4 +18,4 @@ class EmbeddingType(Enum):
         if self == EmbeddingType.HuggingFace:
             return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs=model_kwargs)
         elif self == EmbeddingType.OpenAI:
-            return OpenAIEmbeddings(model_name='gpt', model_kwargs=model_kwargs)
+            return OpenAIEmbeddings(model_kwargs=model_kwargs, model_name="gpt-3.5-turbo")
